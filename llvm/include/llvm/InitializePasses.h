@@ -341,6 +341,8 @@ void initializeWinEHPreparePass(PassRegistry&);
 void initializeWriteBitcodePassPass(PassRegistry&);
 void initializeXRayInstrumentationPass(PassRegistry&);
 
+void initializeGateBuilderLegacyPassPass(PassRegistry&);
+void initializeGateGlobalsLegacyPassPass(PassRegistry&);
 } // end namespace llvm
 
 #endif // LLVM_INITIALIZEPASSES_H

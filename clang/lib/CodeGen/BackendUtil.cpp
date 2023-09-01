@@ -76,6 +76,8 @@
 #include "llvm/Transforms/ObjCARC.h"
 #include "llvm/Transforms/Scalar/EarlyCSE.h"
 #include "llvm/Transforms/Scalar/GVN.h"
+#include "llvm/Transforms/Scalar/GateBuilder.h"
+#include "llvm/Transforms/Scalar/GateGlobals.h"
 #include "llvm/Transforms/Scalar/JumpThreading.h"
 #include "llvm/Transforms/Utils/Debugify.h"
 #include "llvm/Transforms/Utils/EntryExitInstrumenter.h"
@@ -96,7 +98,7 @@ extern cl::opt<bool> DebugInfoCorrelate;
 static cl::opt<bool> ClSanitizeOnOptimizerEarlyEP(
     "sanitizer-early-opt-ep", cl::Optional,
     cl::desc("Insert sanitizers on OptimizerEarlyEP."), cl::init(false));
-}
+} // namespace llvm
 
 namespace {
 
@@ -146,7 +148,7 @@ class EmitAssemblyHelper {
   std::unique_ptr<llvm::ToolOutputFile> openOutputFile(StringRef Path) {
     std::error_code EC;
     auto F = std::make_unique<llvm::ToolOutputFile>(Path, EC,
-                                                     llvm::sys::fs::OF_None);
+                                                    llvm::sys::fs::OF_None);
     if (EC) {
       Diags.Report(diag::err_fe_unable_to_open_output) << Path << EC.message();
       F.reset();
@@ -195,7 +197,7 @@ public:
   void EmitAssembly(BackendAction Action,
                     std::unique_ptr<raw_pwrite_stream> OS);
 };
-}
+} // namespace
 
 static SanitizerCoverageOptions
 getSancovOptsFromCGOpts(const CodeGenOptions &CGOpts) {
@@ -541,8 +543,7 @@ static void setCommandLineOpts(const CodeGenOptions &CodeGenOpts) {
   // FIXME: The command line parser below is not thread-safe and shares a global
   // state, so this call might crash or overwrite the options of another Clang
   // instance in the same process.
-  llvm::cl::ParseCommandLineOptions(BackendArgs.size() - 1,
-                                    BackendArgs.data());
+  llvm::cl::ParseCommandLineOptions(BackendArgs.size() - 1, BackendArgs.data());
 }
 
 void EmitAssemblyHelper::CreateTargetMachine(bool MustCreateTM) {
@@ -931,12 +932,11 @@ void EmitAssemblyHelper::RunOptimizationPipeline(
     bool IsLTO = CodeGenOpts.PrepareForLTO;
 
     if (LangOpts.ObjCAutoRefCount) {
-      PB.registerPipelineStartEPCallback(
-          [](ModulePassManager &MPM, OptimizationLevel Level) {
-            if (Level != OptimizationLevel::O0)
-              MPM.addPass(
-                  createModuleToFunctionPassAdaptor(ObjCARCExpandPass()));
-          });
+      PB.registerPipelineStartEPCallback([](ModulePassManager &MPM,
+                                            OptimizationLevel Level) {
+        if (Level != OptimizationLevel::O0)
+          MPM.addPass(createModuleToFunctionPassAdaptor(ObjCARCExpandPass()));
+      });
       PB.registerPipelineEarlySimplificationEPCallback(
           [](ModulePassManager &MPM, OptimizationLevel Level) {
             if (Level != OptimizationLevel::O0)
@@ -1109,6 +1109,9 @@ void EmitAssemblyHelper::RunCodegenPipeline(
   // does not work with the codegen pipeline.
   // FIXME: make the new PM work with the codegen pipeline.
   legacy::PassManager CodeGenPasses;
+
+  //CodeGenPasses.add(createGateGlobalsLegacyPass());
+  CodeGenPasses.add(createGateBuilderLegacyPass());
 
   // Append any output we need to the pass manager.
   switch (Action) {
@@ -1291,7 +1294,7 @@ void clang::EmitBackendOutput(DiagnosticsEngine &Diags,
                       .moveInto(CombinedIndex)) {
       logAllUnhandledErrors(std::move(E), errs(),
                             "Error loading index file '" +
-                            CGOpts.ThinLTOIndexFile + "': ");
+                                CGOpts.ThinLTOIndexFile + "': ");
       return;
     }
 

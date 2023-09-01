@@ -46,6 +46,8 @@
 #include "llvm/Transforms/Utils/SymbolRewriter.h"
 #include "llvm/Transforms/Utils/UnifyFunctionExitNodes.h"
 #include "llvm/Transforms/Vectorize.h"
+#include "llvm/Transforms/Scalar/GateBuilder.h"
+#include "llvm/Transforms/Scalar/GateGlobals.h"
 #include <cstdlib>
 
 namespace {
@@ -153,6 +155,8 @@ namespace {
       (void) llvm::createUnifyLoopExitsPass();
       (void) llvm::createFixIrreduciblePass();
       (void)llvm::createSelectOptimizePass();
+      (void) llvm::createGateGlobalsLegacyPass();
+      (void) llvm::createGateBuilderLegacyPass();
 
       (void)new llvm::IntervalPartition();
       (void)new llvm::ScalarEvolutionWrapperPass();

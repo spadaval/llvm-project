@@ -63,4 +63,6 @@ void llvm::initializeScalarOpts(PassRegistry &Registry) {
   initializeStraightLineStrengthReduceLegacyPassPass(Registry);
   initializePlaceBackedgeSafepointsLegacyPassPass(Registry);
   initializeLoopSimplifyCFGLegacyPassPass(Registry);
+  initializeGateGlobalsLegacyPassPass(Registry);
+  initializeGateBuilderLegacyPassPass(Registry);
 }
